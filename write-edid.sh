@@ -23,6 +23,7 @@ ARGS=$(getopt -o "bh" --longoptions "binary,hexadecimal" -n "$PROGRAM_STRING" --
 eval set -- $ARGS
 
 binaryMode=1
+edidLength=128
 
 while true ; do
   case "$1" in
@@ -30,6 +31,10 @@ while true ; do
       binaryMode=1 ; shift ;;
     -h|--hexadecimal)
       binaryMode=0 ; shift ;;
+    -s|--short)
+      edidLength=128 ; shift ;;
+    -e|--extended)
+      edidLength=256 ; shift ;;
     --)
       shift ; break ;;
     "") break ;;
@@ -39,7 +44,7 @@ done
 
 if [ "$#" -lt "1" -o "$#" -gt 2 ]; then
   echo "Please specifiy a valid i2c bus as first parameter and the data as second one."
-  echo "Use: $0 [ --binary ] <bus> <data_file>"
+  echo "Use: $0 [ --binary ] [ --extended ] <bus> <data_file>"
   exit 1
 fi
 
@@ -65,18 +70,17 @@ fi
 IFSBAK=$IFS
 export IFS=$' \n\t\r'
 # some field
-edidLength=128
 count=0
 chipAddress="0x50"
 
 if [ "$binaryMode" -eq 0 ] ; then
   cat "$FILE"
 else
-  xxd -p -g 0 -u -c 1 -l 128 "$FILE"
+  xxd -p -g 0 -u -c 1 -l "$edidLength" "$FILE"
 fi | while read -r line ; do
   for chunk in $line
   do
-    # if we have reached 128 byte, stop
+    # if we have reached edidLength bytes, stop
     if [ "$count" -eq "$edidLength" ]; then
       echo "done" >&2
       break
